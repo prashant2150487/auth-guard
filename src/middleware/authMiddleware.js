@@ -25,15 +25,22 @@ export const protect = async (req, res, next) => {
       // Check if user still exists
       const user = await User.findByPk(decoded.id, {
         attributes: ["id", "name", "email"],
-        include: [{
-          model: Role,
-          attributes: ['id', 'name'],
-          include: [{
+        include: [
+          {
+            model: Role,
+            attributes: ['id', 'name'],
+            include: [{
+              model: Permission,
+              attributes: ['id', 'name'],
+              through: { attributes: [] }
+            }]
+          },
+          {
             model: Permission,
             attributes: ['id', 'name'],
             through: { attributes: [] }
-          }]
-        }]
+          }
+        ]
       });
 
       if (!user) {

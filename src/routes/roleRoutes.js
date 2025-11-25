@@ -7,7 +7,7 @@ import { createRole } from '../controllers/roleController.js';
 const router = express.Router();
 
 // All routes are protected
-router.post('/', protect, hasPermission('create_role'), createRole);
+router.post('/', protect, createRole);
 // router.get('/', protect, getAllRoles);
 // router.get('/:id', protect, getRoleById);
 // router.put('/:id', protect, updateRole);

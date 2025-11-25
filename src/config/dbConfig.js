@@ -1,5 +1,6 @@
 import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
+import { seedDefaultAdmin } from "./seeders.js";
 dotenv.config();
 
 export const sequelize = new Sequelize(
@@ -22,6 +23,9 @@ export const initDB = async () => {
         console.log("MySQL Connected via Sequelize");
         await sequelize.sync({ alter: true });
         console.log("Models synced");
+
+        // Seed default admin user
+        await seedDefaultAdmin();
     } catch (error) {
         console.error("DB Error:", error);
     }

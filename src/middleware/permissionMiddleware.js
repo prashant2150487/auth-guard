@@ -12,22 +12,32 @@ export const restrictTo = (...roles) => {
 
 export const hasPermission = (requiredPermission) => {
     return (req, res, next) => {
-        if (!req.user || !req.user.Role || !req.user.Role.Permissions) {
+        if (!req.user) {
             return res.status(403).json({
                 success: false,
                 message: "You do not have permission to perform this action",
             });
         }
 
-        const userPermissions = req.user.Role.Permissions.map(p => p.name);
-
-        if (!userPermissions.includes(requiredPermission)) {
-            return res.status(403).json({
-                success: false,
-                message: `You need the '${requiredPermission}' permission to perform this action`,
-            });
+        // Check user-specific permissions first
+        if (req.user.Permissions && req.user.Permissions.length > 0) {
+            const userSpecificPermissions = req.user.Permissions.map(p => p.name);
+            if (userSpecificPermissions.includes(requiredPermission)) {
+                return next();
+            }
         }
 
-        next();
+        // Fall back to role-based permissions
+        if (req.user.Role && req.user.Role.Permissions) {
+            const rolePermissions = req.user.Role.Permissions.map(p => p.name);
+            if (rolePermissions.includes(requiredPermission)) {
+                return next();
+            }
+        }
+
+        return res.status(403).json({
+            success: false,
+            message: `You need the '${requiredPermission}' permission to perform this action`,
+        });
     };
 };
