@@ -31,8 +31,8 @@ app.use(limiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/permissions", permissionRoutes);
 app.use("/api/roles", roleRoutes);
-app.use("/api/users", userPermissionRoutes);
-app.use("/api/user-management", userRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/user-management", userPermissionRoutes);
 
 
 

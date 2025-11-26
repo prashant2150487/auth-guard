@@ -20,7 +20,7 @@ const router = express.Router();
 router.use(protect);
 
 // User CRUD operations
-router.get('/', getAllUsers);                                    // Get all users with pagination
+router.get('/', protect,  getAllUsers);                                    // Get all users with pagination
 router.get('/stats', getUserStats);                              // Get user statistics
 router.get('/role/:roleId', getUsersByRole);                     // Get users by role
 router.get('/:id', getUserById);                                 // Get user by ID

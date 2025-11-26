@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/userModel.js';
+import { Role } from '../models/roleModel.js';
+import { Permission } from '../models/permissionModel.js';
 
 // Generate Access Token
 const generateAccessToken = (userId) => {
@@ -205,7 +207,23 @@ export const login = async (req, res) => {
 export const getProfile = async (req, res) => {
     try {
         const user = await User.findByPk(req.user.id, {
-            attributes: ["id", "name", "email", "phone", "image"]
+            attributes: ["id", "name", "email", "phone", "image"],
+            include: [
+                {
+                    model: Role,
+                    attributes: ["id", "name", "description"],
+                    include: [{
+                        model: Permission,
+                        attributes: ["id", "name"],
+                        through: { attributes: [] }
+                    }]
+                },
+                {
+                    model: Permission,
+                    attributes: ["id", "name"],
+                    through: { attributes: [] }
+                }
+            ]
         });
 
         if (!user) {
