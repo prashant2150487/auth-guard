@@ -7,7 +7,7 @@ import { Permission } from '../models/permissionModel.js';
 // Generate Access Token
 const generateAccessToken = (userId) => {
     return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN || '15m',
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN || '1d',
     });
 };
 
@@ -180,6 +180,7 @@ export const login = async (req, res) => {
                 message: "Invalid credentials",
             });
         }
+        
         const accessToken = generateAccessToken(user.id);
         // Set refresh token as httpOnly cookie
         res.cookie('refreshToken', refreshToken, {
@@ -211,12 +212,7 @@ export const getProfile = async (req, res) => {
             include: [
                 {
                     model: Role,
-                    attributes: ["id", "name", "description"],
-                    include: [{
-                        model: Permission,
-                        attributes: ["id", "name"],
-                        through: { attributes: [] }
-                    }]
+                    attributes: ["id", "name", "description"]
                 },
                 {
                     model: Permission,

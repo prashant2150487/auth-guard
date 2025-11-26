@@ -1,11 +1,9 @@
 import { Role } from '../models/roleModel.js';
-import { Permission } from '../models/permissionModel.js';
-import { RolePermission } from '../models/rolePermissionModel.js';
 
 // Create Role
 export const createRole = async (req, res) => {
   try {
-    const { name, description, permissionIds } = req.body;
+    const { name, description } = req.body;
 
     // Payload validation
     if (!name) {
@@ -30,26 +28,10 @@ export const createRole = async (req, res) => {
       description: description || null
     });
 
-    // Add permissions if provided
-    if (permissionIds && permissionIds.length > 0) {
-      const permissions = await Permission.findAll({
-        where: { id: permissionIds }
-      });
-      await role.setPermissions(permissions);
-    }
-
-    // Get role with permissions
-    const roleWithPermissions = await Role.findByPk(role.id, {
-      include: [{
-        model: Permission,
-        through: { attributes: [] }
-      }]
-    });
-
     res.status(201).json({
       success: true,
       message: "Role created successfully",
-      data: { role: roleWithPermissions },
+      data: { role },
     });
   } catch (error) {
     console.error("Create role error:", error);
@@ -64,10 +46,6 @@ export const createRole = async (req, res) => {
 export const getAllRoles = async (req, res) => {
   try {
     const roles = await Role.findAll({
-      include: [{
-        model: Permission,
-        through: { attributes: [] }
-      }],
       order: [['id', 'ASC']]
     });
 
@@ -90,12 +68,7 @@ export const getRoleById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const role = await Role.findByPk(id, {
-      include: [{
-        model: Permission,
-        through: { attributes: [] }
-      }]
-    });
+    const role = await Role.findByPk(id);
 
     if (!role) {
       return res.status(404).json({
@@ -121,7 +94,7 @@ export const getRoleById = async (req, res) => {
 export const updateRole = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, permissionIds } = req.body;
+    const { name, description } = req.body;
 
     const role = await Role.findByPk(id);
     if (!role) {
@@ -146,26 +119,10 @@ export const updateRole = async (req, res) => {
     if (description !== undefined) role.description = description;
     await role.save();
 
-    // Update permissions if provided
-    if (permissionIds) {
-      const permissions = await Permission.findAll({
-        where: { id: permissionIds }
-      });
-      await role.setPermissions(permissions);
-    }
-
-    // Get updated role with permissions
-    const updatedRole = await Role.findByPk(id, {
-      include: [{
-        model: Permission,
-        through: { attributes: [] }
-      }]
-    });
-
     res.status(200).json({
       success: true,
       message: "Role updated successfully",
-      data: { role: updatedRole },
+      data: { role },
     });
   } catch (error) {
     console.error("Update role error:", error);
@@ -203,128 +160,3 @@ export const deleteRole = async (req, res) => {
     });
   }
 };
-
-// Add Permissions to Role
-export const addPermissionsToRole = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { permissionIds } = req.body;
-
-    if (!permissionIds || !Array.isArray(permissionIds) || permissionIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide permission IDs array",
-      });
-    }
-
-    const role = await Role.findByPk(id);
-    if (!role) {
-      return res.status(404).json({
-        success: false,
-        message: "Role not found",
-      });
-    }
-
-    const permissions = await Permission.findAll({
-      where: { id: permissionIds }
-    });
-
-    if (permissions.length !== permissionIds.length) {
-      return res.status(400).json({
-        success: false,
-        message: "Some permissions not found",
-      });
-    }
-
-    await role.addPermissions(permissions);
-
-    const updatedRole = await Role.findByPk(id, {
-      include: [{
-        model: Permission,
-        through: { attributes: [] }
-      }]
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Permissions added to role successfully",
-      data: { role: updatedRole },
-    });
-  } catch (error) {
-    console.error("Add permissions error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
-
-// Remove Permissions from Role
-export const removePermissionsFromRole = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { permissionIds } = req.body;
-
-    if (!permissionIds || !Array.isArray(permissionIds) || permissionIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide permission IDs array",
-      });
-    }
-
-    const role = await Role.findByPk(id);
-    if (!role) {
-      return res.status(404).json({
-        success: false,
-        message: "Role not found",
-      });
-    }
-
-    const permissions = await Permission.findAll({
-      where: { id: permissionIds }
-    });
-
-    await role.removePermissions(permissions);
-
-    const updatedRole = await Role.findByPk(id, {
-      include: [{
-        model: Permission,
-        through: { attributes: [] }
-      }]
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Permissions removed from role successfully",
-      data: { role: updatedRole },
-    });
-  } catch (error) {
-    console.error("Remove permissions error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
-
-// Create Role Payload:
-
-// {
-//   "name": "admin",
-//   "description": "Administrator role with full access",
-//   "permissionIds": [1, 2, 3, 4]
-// }
-// Update Role Payload:
-// {
-//   "name": "superadmin",
-//   "description": "Super Administrator role",
-//   "permissionIds": [1, 2, 3, 4, 5]
-// Add Permissions to Role Payload:
-// {
-//   "permissionIds": [1, 2, 3]
-// }
-// Create Permission Payload:
-// {
-//   "name": "user.create",
-//   "description": "Create new users"
-// }

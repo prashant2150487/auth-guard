@@ -1,53 +1,83 @@
-import bcrypt from 'bcryptjs';
-import { User } from '../models/userModel.js';
-import { sequelize } from './dbConfig.js';
+import bcrypt from "bcryptjs";
+import { User } from "../models/userModel.js";
+import { Role } from "../models/roleModel.js";
+import { Permission } from "../models/permissionModel.js";
+import { sequelize } from "./dbConfig.js";
 
 /**
  * Seeds the database with a default admin user if it doesn't exist
- * Also assigns all permissions (1-15) to the admin user
+ * Also assigns all permissions to the admin user
  */
 export const seedDefaultAdmin = async () => {
     try {
-        const adminEmail = 'admin@gmail.com';
+        // 1. Ensure Role exists
+        let adminRole = await Role.findOne({ where: { name: 'super-admin' } });
+        if (!adminRole) {
+            adminRole = await Role.create({
+                name: 'super-admin',
+                description: 'Super administrator with all permissions'
+            });
+            console.log("✓ Created super-admin role");
+        }
 
-        // Check if admin user already exists
+        // 2. Ensure Permissions exist
+        const permissionsList = [
+            "users.read", "users.create", "users.update", "users.delete",
+            "roles.read", "roles.create", "roles.update", "roles.delete",
+            "permissions.read", "permissions.create", "permissions.update", "permissions.delete",
+            "posts.read", "posts.create", "posts.update"
+        ];
+
+        const createdPermissions = [];
+        for (const permName of permissionsList) {
+            const [perm] = await Permission.findOrCreate({
+                where: { name: permName },
+                defaults: { description: `Permission to ${permName}` }
+            });
+            createdPermissions.push(perm);
+        }
+
+        const adminEmail = "admin@gmail.com";
+
+        // 3. Check if admin user already exists
         const existingAdmin = await User.findOne({
             where: { email: adminEmail }
         });
 
         if (existingAdmin) {
-            console.log('✓ Default admin user already exists, skipping seed');
+            console.log("✓ Default admin user already exists, skipping seed");
             return;
         }
 
-        // Admin user doesn't exist, create it
+        // 4. Create Admin User
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash('test@123', salt);
+        const hashedPassword = await bcrypt.hash("test@123", salt);
 
         const adminUser = await User.create({
-            name: 'Prashant Sachan',
+            name: "Prashant Sachan",
             email: adminEmail,
             password: hashedPassword,
-            phone: '8546040002',
-            roleId: 2  // Default role ID
+            phone: "8546040002",
+            roleId: adminRole.id
         });
 
-        // Assign all permissions (1-15) to admin user using raw query to avoid circular dependency
-        const permissionIds = Array.from({ length: 15 }, (_, i) => i + 1);
-        const values = permissionIds.map(permissionId =>
-            `(${adminUser.id}, ${permissionId}, NOW(), NOW())`
-        ).join(', ');
+        // 5. Assign all permissions to admin user
+        const values = createdPermissions
+            .map(
+                (perm) =>
+                    `(${adminUser.id}, ${perm.id}, NOW(), NOW())`
+            )
+            .join(", ");
 
-        await sequelize.query(
-            `INSERT INTO UserPermissions (userId, permissionId, createdAt, updatedAt) VALUES ${values}`
-        );
+        if (values.length > 0) {
+            await sequelize.query(
+                `INSERT INTO UserPermissions (userId, permissionId, createdAt, updatedAt)
+                 VALUES ${values};`
+            );
+        }
 
-        console.log('✓ Default admin user created successfully');
-        console.log(`  Email: ${adminEmail}`);
-        console.log(`  Password: test@123`);
-        console.log(`  Role ID: 2`);
-        console.log(`  Permissions: 1-15 (${permissionIds.length} permissions assigned)`);
+        console.log("✓ Default admin created & all permissions assigned");
     } catch (error) {
-        console.error('✗ Error seeding default admin user:', error.message);
+        console.error("❌ Error seeding admin:", error);
     }
 };

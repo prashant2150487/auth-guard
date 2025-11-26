@@ -29,11 +29,6 @@ export const protect = async (req, res, next) => {
           {
             model: Role,
             attributes: ['id', 'name'],
-            include: [{
-              model: Permission,
-              attributes: ['id', 'name'],
-              through: { attributes: [] }
-            }]
           },
           {
             model: Permission,

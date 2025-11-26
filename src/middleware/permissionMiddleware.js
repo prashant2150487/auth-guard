@@ -19,18 +19,10 @@ export const hasPermission = (requiredPermission) => {
             });
         }
 
-        // Check user-specific permissions first
+        // Check user-specific permissions
         if (req.user.Permissions && req.user.Permissions.length > 0) {
             const userSpecificPermissions = req.user.Permissions.map(p => p.name);
             if (userSpecificPermissions.includes(requiredPermission)) {
-                return next();
-            }
-        }
-
-        // Fall back to role-based permissions
-        if (req.user.Role && req.user.Role.Permissions) {
-            const rolePermissions = req.user.Role.Permissions.map(p => p.name);
-            if (rolePermissions.includes(requiredPermission)) {
                 return next();
             }
         }
