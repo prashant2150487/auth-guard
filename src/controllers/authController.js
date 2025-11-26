@@ -178,8 +178,21 @@ export const login = async (req, res) => {
                 message: "Invalid credentials",
             });
         }
+        const accessToken = generateAccessToken(user.id);
+        // Set refresh token as httpOnly cookie
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        })
+        res.status(200).json({
+            success: true,
+            accessToken,
 
-        sendTokenResponse(user, 200, res);
+        })
+
+
     } catch (error) {
         console.error("Login error:", error);
         res.status(500).json({
@@ -192,7 +205,7 @@ export const login = async (req, res) => {
 export const getProfile = async (req, res) => {
     try {
         const user = await User.findByPk(req.user.id, {
-            attributes: ["id", "name", "email"]
+            attributes: ["id", "name", "email", "phone", "image"]
         });
 
         if (!user) {
