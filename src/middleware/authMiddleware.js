@@ -35,8 +35,10 @@ export const protect = async (req, res, next) => {
             attributes: ['id', 'name'],
             through: { attributes: [] }
           }
-        ]
+        ],
+        raw: false
       });
+      //  console.log(user);
 
       if (!user) {
         return res.status(401).json({

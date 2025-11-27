@@ -101,7 +101,7 @@ export const refreshToken = async (req, res) => {
 
 export const signUp = async (req, res) => {
     try {
-        const { name, email, password, phone, image } = req.body;
+        const { name, email, password, phone, image, roleId = 2 } = req.body;
 
         // Basic validation
         if (!name || !email || !password) {
@@ -139,7 +139,9 @@ export const signUp = async (req, res) => {
             password: hashedPassword,
             phone: phone || null,
             image: image || null,
+            roleId: 2
         });
+        console.log(user, "aaa", roleId)
 
         sendTokenResponse(user, 201, res);
     } catch (error) {
@@ -180,7 +182,7 @@ export const login = async (req, res) => {
                 message: "Invalid credentials",
             });
         }
-        
+
         const accessToken = generateAccessToken(user.id);
         // Set refresh token as httpOnly cookie
         res.cookie('refreshToken', refreshToken, {

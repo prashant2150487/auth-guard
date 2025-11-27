@@ -9,6 +9,14 @@ export const assignPermissionToUser = async (req, res) => {
         const { userId } = req.params;
         const { permissionId } = req.body;
 
+        if (!permissionId) {
+            return res.status(400).json({
+                success: false,
+                message: "Permission ID is required"
+            });
+        }
+
+
         // Check if user exists
         const user = await User.findByPk(userId);
         if (!user) {

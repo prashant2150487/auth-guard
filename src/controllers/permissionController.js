@@ -47,10 +47,6 @@ export const createPermission = async (req, res) => {
 export const getAllPermissions = async (req, res) => {
   try {
     const permissions = await Permission.findAll({
-      include: [{
-        model: Role,
-        through: { attributes: [] }
-      }],
       order: [['id', 'ASC']]
     });
 
