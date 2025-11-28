@@ -12,7 +12,7 @@ const router = express.Router();
 
 // All routes are protected
 router.post('/:userId/permissions', protect, hasPermission('permissions.read'), assignPermissionToUser);
-router.post('/:userId/permissions/bulk', protect, bulkAssignPermissions);
+router.post('/:userId/permissions/bulk', protect, hasPermission('permissions.read'), bulkAssignPermissions);
 router.delete('/:userId/permissions/:permissionId', protect, removePermissionFromUser);
 router.get('/:userId/permissions', protect, getUserPermissions);
 

@@ -23,10 +23,18 @@ export const getAllUsers = async (req, res) => {
         const { count, rows } = await User.findAndCountAll({
             where: whereClause,
             attributes: ['id', 'name', 'email', 'phone', 'image', 'roleId', 'createdAt'],
-            include: [{
-                model: Role,
-                attributes: ['id', 'name']
-            }],
+            include: [
+                {
+                    model: Role,
+                    attributes: ['id', 'name'],
+
+                },
+                {
+                    model: Permission,
+                    attributes: ['id', 'name', 'description'],
+                    through: { attributes: [] }
+                }
+            ],
             limit: parseInt(limit),
             offset: parseInt(offset),
             order: [['createdAt', 'DESC']]

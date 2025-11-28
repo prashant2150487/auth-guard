@@ -69,12 +69,7 @@ export const getPermissionById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const permission = await Permission.findByPk(id, {
-      include: [{
-        model: Role,
-        through: { attributes: [] }
-      }]
-    });
+    const permission = await Permission.findByPk(id);
 
     if (!permission) {
       return res.status(404).json({
