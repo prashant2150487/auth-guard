@@ -4,6 +4,7 @@ import permissionRoutes from "./routes/permission.js"
 import roleRoutes from "./routes/roleRoutes.js"
 import userPermissionRoutes from "./routes/userPermissionRoutes.js"
 import userRoutes from "./routes/userRoutes.js"
+import productRoutes from "./routes/productRoutes.js"
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
@@ -33,6 +34,7 @@ app.use("/api/permissions", permissionRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/user-management", userPermissionRoutes);
+app.use("/api/products", productRoutes);
 
 
 

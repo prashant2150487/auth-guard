@@ -1,7 +1,6 @@
 import { User } from "../models/userModel.js";
 import { Permission } from "../models/permissionModel.js";
 import { UserPermission } from "../models/userPermissionModel.js";
-import { Role } from "../models/roleModel.js";
 
 // Assign a permission to a user
 export const assignPermissionToUser = async (req, res) => {
@@ -68,7 +67,7 @@ export const assignPermissionToUser = async (req, res) => {
     }
 };
 
-// Assign multiple permissions to a user
+// Replace all user permissions with new ones (bulk assign)
 export const bulkAssignPermissions = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -102,31 +101,27 @@ export const bulkAssignPermissions = async (req, res) => {
             });
         }
 
-        // Get existing permissions to avoid duplicates
-        const existingPermissions = await UserPermission.findAll({
-            where: { userId, permissionId: permissionIds }
+        // Delete ALL existing permissions for this user
+        const deletedCount = await UserPermission.destroy({
+            where: { userId }
         });
 
-        const existingPermissionIds = existingPermissions.map(up => up.permissionId);
-        const newPermissionIds = permissionIds.filter(id => !existingPermissionIds.includes(id));
-
-        // Create new user permissions
-        const userPermissions = newPermissionIds.map(permissionId => ({
+        // Create new user permissions (replace with new ones)
+        const userPermissions = permissionIds.map(permissionId => ({
             userId,
             permissionId
         }));
 
-        if (userPermissions.length > 0) {
-            await UserPermission.bulkCreate(userPermissions);
-        }
+        await UserPermission.bulkCreate(userPermissions);
 
-        res.status(201).json({
+        res.status(200).json({
             success: true,
-            message: "Permissions assigned to user successfully",
+            message: "User permissions replaced successfully",
             data: {
                 userId,
-                assignedCount: newPermissionIds.length,
-                skippedCount: existingPermissionIds.length
+                previousPermissions: deletedCount,
+                newPermissions: permissionIds.length,
+                assignedPermissionIds: permissionIds
             }
         });
     } catch (error) {
@@ -186,30 +181,14 @@ export const removePermissionFromUser = async (req, res) => {
     }
 };
 
-// Get all permissions for a user (both direct and from role)
+// Get all permissions with assigned status for a user
 export const getUserPermissions = async (req, res) => {
     try {
         const { userId } = req.params;
 
-        // Get user with role and permissions
+        // Check if user exists
         const user = await User.findByPk(userId, {
-            attributes: ['id', 'name', 'email'],
-            include: [
-                {
-                    model: Role,
-                    attributes: ['id', 'name'],
-                    include: [{
-                        model: Permission,
-                        attributes: ['id', 'name', 'description'],
-                        through: { attributes: [] }
-                    }]
-                },
-                {
-                    model: Permission,
-                    attributes: ['id', 'name', 'description'],
-                    through: { attributes: [] }
-                }
-            ]
+            attributes: ['id', 'name', 'email']
         });
 
         if (!user) {
@@ -219,35 +198,33 @@ export const getUserPermissions = async (req, res) => {
             });
         }
 
-        // Combine permissions from role and user-specific
-        const rolePermissions = user.Role?.Permissions || [];
-        const userPermissions = user.Permissions || [];
-
-        // Create a map to avoid duplicates
-        const permissionMap = new Map();
-
-        rolePermissions.forEach(p => {
-            permissionMap.set(p.id, {
-                id: p.id,
-                name: p.name,
-                description: p.description,
-                source: 'role'
-            });
+        // Get all permissions from database
+        const allPermissions = await Permission.findAll({
+            attributes: ['id', 'name', 'description'],
+            order: [['id', 'ASC']]
         });
 
-        userPermissions.forEach(p => {
-            if (permissionMap.has(p.id)) {
-                // If permission exists from role, mark as both
-                permissionMap.get(p.id).source = 'both';
-            } else {
-                permissionMap.set(p.id, {
-                    id: p.id,
-                    name: p.name,
-                    description: p.description,
-                    source: 'user'
-                });
-            }
+        // Get user's assigned permissions
+        const userPermissions = await UserPermission.findAll({
+            where: { userId },
+            attributes: ['permissionId']
         });
+
+        // Create a Set of assigned permission IDs for quick lookup
+        const assignedPermissionIds = new Set(
+            userPermissions.map(up => up.permissionId)
+        );
+
+        // Map all permissions with isAssigned flag
+        const permissionsWithStatus = allPermissions.map(permission => ({
+            id: permission.id,
+            name: permission.name,
+            description: permission.description,
+            isAssigned: assignedPermissionIds.has(permission.id)
+        }));
+
+        // Count assigned permissions
+        const assignedCount = permissionsWithStatus.filter(p => p.isAssigned).length;
 
         res.status(200).json({
             success: true,
@@ -255,17 +232,13 @@ export const getUserPermissions = async (req, res) => {
                 user: {
                     id: user.id,
                     name: user.name,
-                    email: user.email,
-                    role: user.Role ? {
-                        id: user.Role.id,
-                        name: user.Role.name
-                    } : null
+                    email: user.email
                 },
-                permissions: Array.from(permissionMap.values()),
+                permissions: permissionsWithStatus,
                 summary: {
-                    total: permissionMap.size,
-                    fromRole: rolePermissions.length,
-                    userSpecific: userPermissions.length
+                    total: allPermissions.length,
+                    assigned: assignedCount,
+                    notAssigned: allPermissions.length - assignedCount
                 }
             }
         });
