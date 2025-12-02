@@ -36,6 +36,10 @@ export const Product = sequelize.define("Product", {
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+    },
+    permission: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     timestamps: true,

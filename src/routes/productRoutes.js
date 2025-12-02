@@ -17,7 +17,7 @@ const router = express.Router();
 router.use(protect);
 
 // Product CRUD operations with permission-based access
-router.get('/', protect, hasPermission('products.read'), getAllProducts);
+router.get('/', protect, getAllProducts);
 router.get('/:id', protect, hasPermission('products.read'), getProductById);
 router.post('/', protect, hasPermission('products.create'), createProduct);
 router.put('/:id', protect, hasPermission('products.update'), updateProduct);

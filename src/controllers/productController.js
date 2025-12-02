@@ -79,31 +79,81 @@ export const getProductById = async (req, res) => {
 // Create new product
 export const createProduct = async (req, res) => {
     try {
-        const { title, subtitle, description, image, price, isActive } = req.body;
+        const { title, subtitle, description, permission, image, price, isActive=true } = req.body;
 
-        if (!title) {
+        // Validation: Check required fields
+        if (!title || !title.trim()) {
             return res.status(400).json({
                 success: false,
                 message: 'Title is required'
             });
         }
 
+        if (!description || !description.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Description is required'
+            });
+        }
+
+        // Validate title length
+        if (title.trim().length < 3) {
+            return res.status(400).json({
+                success: false,
+                message: 'Title must be at least 3 characters long'
+            });
+        }
+
+        // Validate description length
+        if (description.trim().length < 10) {
+            return res.status(400).json({
+                success: false,
+                message: 'Description must be at least 10 characters long'
+            });
+        }
+
+        // Create product with validated data
         const product = await Product.create({
-            title,
-            subtitle,
-            description,
-            image,
-            price,
-            isActive: isActive !== undefined ? isActive : true
+            title: title.trim(),
+            subtitle: subtitle?.trim() || null,
+            description: description.trim(),
+            image: image || null,
+            price: price || null,
+            isActive: isActive !== undefined ? isActive : true,
+            permission: permission || null
         });
 
         res.status(201).json({
             success: true,
             message: 'Product created successfully',
-            data: product
+            data: {
+                ...product.toJSON(),
+                permission: permission || null // Include permission in response for frontend
+            }
         });
     } catch (error) {
         console.error('Create product error:', error);
+
+        // Handle Sequelize validation errors
+        if (error.name === 'SequelizeValidationError') {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors: error.errors.map(e => ({
+                    field: e.path,
+                    message: e.message
+                }))
+            });
+        }
+
+        // Handle unique constraint errors
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            return res.status(409).json({
+                success: false,
+                message: 'A product with this information already exists'
+            });
+        }
+
         res.status(500).json({
             success: false,
             message: 'Internal server error'
